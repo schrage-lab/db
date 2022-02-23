@@ -1,0 +1,19 @@
+version: '3.7'
+
+services:
+    postgres:
+        image: postgres:13
+        restart: always
+        environment:
+          - POSTGRES_USER=${PG_USER}
+          - POSTGRES_PASSWORD=${PG_PASSWORD}
+        logging:
+          options:
+            max-size: 10m
+            max-file: "3"
+        ports:
+            - '5432:5432'
+        volumes: 
+            - data:/var/lib/postgresql/data
+volumes:
+  data:
