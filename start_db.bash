@@ -55,18 +55,28 @@ function main(){
     echo "${day_time_readable} Initial archiving..."
     archiver
 
+	# archive every hour
+	INTERVAL=3600
+
     while true; do
-        echo "Press 'q' to exit"
-        read -t 600 -n 1 char <&1
-        if [[ $char = q ]]; then
-            echo "${day_time_readable} Getting final archive..."
-            archiver
-            
-            echo "Shutting server down..."
-            serverDown
-            
-            break;
-        else
+        printf "\nPress '%s' to begin an archive\nPress '%s' to exit\n" 'a' 'q'
+        read -t $INTERVAL -n 1 char <&1
+        
+		if [ ! -z "$char" ]; then
+			# manual archive
+			if [[ "$char" == a ]]; then
+				archiver;
+			
+			elif [[ "$char" == q ]]; then
+				echo; echo "${day_time_readable} Getting final archive..."
+				archiver
+				
+				echo "Shutting server down..."
+				serverDown
+				
+				break
+			fi
+		else
             archiver
         fi
     done
