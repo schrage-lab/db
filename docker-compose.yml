@@ -10,32 +10,28 @@ x-pg-common: &pg-common
       options:
         max-size: 10m
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "postgres"]
+      interval: 5s
+      retries: 5
 
 services:
+    # staging server
     stage:
         <<: *pg-common
-        healthcheck:
-            test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "dbStage"]
-            interval: 5s
-            retries: 5
         ports:
-            - '5433:5432'
+            - '${STAGE_PORT}:5432'
         volumes: 
-            - stage_data:/var/lib/postgresql/data
+            - stage-data:/var/lib/postgresql/data
+    # production server
+    # split purposely for future separation of servers onto unique hardware
     prod:
         <<: *pg-common
-        healthcheck:
-            test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "dbProd"]
-            interval: 5s
-            retries: 5
         ports:
-            - '5434:5432'
+            - '${PROD_PORT}:5432'
         volumes: 
-            - prod_data:/var/lib/postgresql/data
+            - prod-data:/var/lib/postgresql/data
 
 volumes:
-  stage_data:
-  prod_data:
-
-
-# https://stackoverflow.com/questions/55327571/postgresql-dockerfile-create-user-and-database-from-entrypoint-script
+  stage-data:
+  prod-data:
