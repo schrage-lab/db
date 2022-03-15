@@ -38,19 +38,34 @@ function archiver(){
     
 	local timestamp=$(date +'%Y%m%d_%H%M%S')
     docker exec -u ${PG_USER} db-postgres-1 pg_dumpall > "${LOCAL_ARCHIVE}/${timestamp}.dump" && echo "${day_time_readable} Archival successful" || echo "${day_time_readable} Archival failed"
-    cp "${LOCAL_ARCHIVE}/${timestamp}.dump" "${FS_SERVER_ARCHIVE}"    
+    # cp "${LOCAL_ARCHIVE}/${timestamp}.dump" "${FS_SERVER_ARCHIVE}"    
+}
+
+function getRecentDump(){
+    # https://stackoverflow.com/questions/5885934/bash-function-to-find-newest-file-matching-pattern
+    # logic:
+    #   1) find all files in the given directory
+    #   2) printf the timestamps
+    #   3) sort based on timestamp
+    #   4) get top result
+    #   5) rm the timestamp to get the filename 
+    #   6) write to .env file for docker compose
+    
+    recent_dump=$(find "$LOCAL_ARCHIVE" -type f -printf '%T+ %p\n' | sort -r | head -n 1 | cut -d' ' -f2)
+    sed -i "RECENT_DUMP/c\RECENT_DUMP=$recent_dump/" .env
 }
 
 function main(){
     day_time_readable=$(date +'%D %T')
     
 	getEnv
+    # getRecentDump
     
     echo "${day_time_readable} Starting server..."
     serverUp
     
     echo "${day_time_readable} Starting DBeaver..."
-    # dbeaverUp
+    dbeaverUp
     
     echo "${day_time_readable} Initial archiving..."
     archiver
