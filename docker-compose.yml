@@ -1,19 +1,41 @@
 version: '3.7'
 
+x-pg-common: &pg-common
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
 services:
-    postgres:
-        image: postgres:13
-        restart: always
-        environment:
-          - POSTGRES_USER=${PG_USER}
-          - POSTGRES_PASSWORD=${PG_PASSWORD}
-        logging:
-          options:
-            max-size: 10m
-            max-file: "3"
+    stage:
+        <<: *pg-common
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "dbStage"]
+            interval: 5s
+            retries: 5
         ports:
-            - '5432:5432'
+            - '5433:5432'
         volumes: 
-            - data:/var/lib/postgresql/data
+            - stage_data:/var/lib/postgresql/data
+    prod:
+        <<: *pg-common
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "dbProd"]
+            interval: 5s
+            retries: 5
+        ports:
+            - '5434:5432'
+        volumes: 
+            - prod_data:/var/lib/postgresql/data
+
 volumes:
-  data:
+  stage_data:
+  prod_data:
+
+
+# https://stackoverflow.com/questions/55327571/postgresql-dockerfile-create-user-and-database-from-entrypoint-script

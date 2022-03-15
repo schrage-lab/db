@@ -14,6 +14,8 @@
 # assumes dbeaver is downloaded into Program Files on Windows host
 # adaptation to native Linux should be fairly easy though
 
+# todo: add check for docker daemon running?
+
 function getEnv(){
 	export $(grep -v '^#' .env | xargs)
 }
