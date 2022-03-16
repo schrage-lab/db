@@ -39,11 +39,18 @@ function archiver(){
     echo "${day_time_readable} Beginning archive..."
     
 	local timestamp=$(date +'%Y%m%d_%H%M%S')
-    docker exec -u ${PG_USER} db-postgres-1 pg_dumpall > "${LOCAL_ARCHIVE}/${timestamp}.dump" && echo "${day_time_readable} Archival successful" || echo "${day_time_readable} Archival failed"
-    # cp "${LOCAL_ARCHIVE}/${timestamp}.dump" "${FS_SERVER_ARCHIVE}"    
+    
+    for container in "db-stage-1" "db-prod-1"; do
+        docker exec -u "${PG_USER}" "${container}" pg_dumpall > "${LOCAL_ARCHIVE}/${container}_${timestamp}.dump" && \
+            echo "${day_time_readable}: ${container}: Archival successful" || \
+            echo "${day_time_readable}: ${container}: Archival failed"
+        
+    done
+    # && cp "${LOCAL_ARCHIVE}/${container}_${timestamp}.dump" "${FS_SERVER_ARCHIVE}"
 }
 
 function getRecentDump(){
+    # use to restore database; unsure if I want to incorporate this functionality
     # https://stackoverflow.com/questions/5885934/bash-function-to-find-newest-file-matching-pattern
     # logic:
     #   1) find all files in the given directory
@@ -53,27 +60,25 @@ function getRecentDump(){
     #   5) rm the timestamp to get the filename 
     #   6) write to .env file for docker compose
     
-    recent_dump=$(find "$LOCAL_ARCHIVE" -type f -printf '%T+ %p\n' | sort -r | head -n 1 | cut -d' ' -f2)
+    local recent_dump=$(find "$LOCAL_ARCHIVE" -type f -printf '%T+ %p\n' | sort -r | head -n 1 | cut -d' ' -f2)
     sed -i "RECENT_DUMP/c\RECENT_DUMP=$recent_dump/" .env
 }
 
 function main(){
-    day_time_readable=$(date +'%D %T')
+    local day_time_readable=$(date +'%D %T')
     
 	getEnv
     # getRecentDump
     
-    echo "${day_time_readable} Starting server..."
+    echo "${day_time_readable}: Starting server..."
     serverUp
     
-    echo "${day_time_readable} Starting DBeaver..."
+    echo "${day_time_readable}: Starting DBeaver..."
     dbeaverUp
-    
-    echo "${day_time_readable} Initial archiving..."
-    archiver
 
 	# archive every hour
-	INTERVAL=3600
+    # format: H * M * S
+	local INTERVAL=$(( 1 * 60 * 60 ))
 
     while true; do
         printf "\nPress '%s' to begin an archive\nPress '%s' to exit\n" 'a' 'q'
