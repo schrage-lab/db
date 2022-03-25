@@ -4,33 +4,35 @@ x-pg-common: &pg-common
     image: postgres:13
     restart: always
     environment:
-      - POSTGRES_USER=${PG_USER}
-      - POSTGRES_PASSWORD=${PG_PASSWORD}
+            - POSTGRES_USER=${PG_USER}
+            - POSTGRES_PASSWORD=${PG_PASSWORD}
     logging:
       options:
         max-size: 10m
         max-file: "3"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${PG_USER}", "-d", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "${PG_USER}"]
       interval: 5s
       retries: 5
 
 services:
-    # staging server
+        # staging server
     stage:
         <<: *pg-common
         ports:
-            - '${STAGE_PORT}:5432'
+                    - '${STAGE_PORT}:5432'
         volumes: 
-            - stage-data:/var/lib/postgresql/data
-    # production server
-    # split purposely for future separation of servers onto unique hardware
+         - stage-data:/var/lib/postgresql/data
+         - ./dba:/dba
+        # production server
+        # split purposely for future separation of servers onto unique hardware
     prod:
         <<: *pg-common
         ports:
-            - '${PROD_PORT}:5432'
+                    - '${PROD_PORT}:5432'
         volumes: 
-            - prod-data:/var/lib/postgresql/data
+         - prod-data:/var/lib/postgresql/data
+         - ./dba:/dba
 
 volumes:
   stage-data:
