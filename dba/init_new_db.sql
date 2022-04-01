@@ -5,11 +5,11 @@
 -- 		i.e. role that can only perform CRUD operations on objects 
 -- CRUD = Create Replace Update Delete
 
-CREATE DATABASE ${VAR};
+CREATE DATABASE :name;
 
 -- revoke 'public' access
 REVOKE ALL 
-	ON DATABASE ${VAR}
+	ON DATABASE :name
 	FROM PUBLIC;
 
 REVOKE CREATE 
@@ -18,28 +18,28 @@ REVOKE CREATE
 
 -- create ddl role
 -- i.e. role that can create objects
-CREATE ROLE db_${VAR}_ddl;
+CREATE ROLE db_:name_ddl;
 
 GRANT
     CONNECT
-    ON DATABASE ${VAR}
-   	TO db_${VAR}_ddl;
+    ON DATABASE :name
+   	TO db_:name_ddl;
 
 GRANT
     TEMPORARY
-    ON DATABASE ${VAR} 
-   	TO db_${VAR}_ddl;
+    ON DATABASE :name 
+   	TO db_:name_ddl;
 
 -- create dml role
 -- i.e. one that only has CRUD options on objects
-CREATE ROLE db_${VAR}_dml;
+CREATE ROLE db_:name_dml;
 
 GRANT
     CONNECT
-    ON DATABASE ${VAR} 
-   	TO db_${VAR}_dml;
+    ON DATABASE :name 
+   	TO db_:name_dml;
 
 GRANT
     TEMPORARY
-    ON DATABASE ${VAR} 
-	TO db_${VAR}_dml;
+    ON DATABASE :name 
+	TO db_:name_dml;
