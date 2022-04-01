@@ -1,4 +1,5 @@
 -- run as user 'postgres' on database 'postgres'
+-- used in conjunction with "pg_createdb.bash" which will replace all instances of ${VAR} with the provided database name
 -- ddl = data definition language
 -- 		i.e. role that can create and use objects
 -- dml = data modeling language 
