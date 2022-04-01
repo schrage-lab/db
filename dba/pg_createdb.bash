@@ -41,7 +41,7 @@ function argparse(){
 
 function generateSql(){
     timestamp="$(date +%Y%m%d_%H%M%S)"
-    fname="new_db_tmp_${timestamp}.sql"
+    fname="/tmp/new_db_tmp_${timestamp}.sql"
     sql_file="init_new_db.sql"
     
     sed -e "s/\${VAR}/${1}/" "$sql_file" > "$fname"
