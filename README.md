@@ -1,6 +1,6 @@
 # db
- Schrage Lab postgres database in Docker
+## branch ubuntu_server
+Schrage Lab postgres database on Ubuntu Server 20.04 
 
-# Use
-Ensure you have properly mounted the file server location.
-Execute `start_db.bash`.
+## purpose
+Helper scripts for dba services
