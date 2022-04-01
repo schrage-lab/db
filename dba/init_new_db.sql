@@ -21,7 +21,8 @@ REVOKE CREATE
 -- create ddl role
 -- i.e. role that can create objects
 CREATE 
-    ROLE ${DATABASE}_ddl_role;
+    ROLE ${DATABASE}_ddl_role
+    WITH ENCRYPTED PASSWORD '${DEFAULT_DDL_PASSWORD}';
 
 GRANT
     CONNECT
@@ -36,7 +37,8 @@ GRANT
 -- create dml role
 -- i.e. one that only has CRUD options on objects
 CREATE 
-    ROLE ${DATABASE}_dml_role;
+    ROLE ${DATABASE}_dml_role
+    WITH ENCRYPTED PASSWORD '${DEFAULT_DML_PASSWORD}';
 
 GRANT
     CONNECT
