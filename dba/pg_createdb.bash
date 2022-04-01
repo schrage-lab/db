@@ -38,20 +38,31 @@ function argparse(){
         esac
     done
     }
+    
+function getEnv(){
+    export $(grep -v '^#' .env | xargs)
+    }
 
 function generateSql(){
+    # $1 = database
+    # $2 = ddl password
+    # $3 = dml password
+    
     timestamp="$(date +%Y%m%d_%H%M%S)"
     fname="new_db_tmp_${timestamp}.sql"
     sql_file="init_new_db.sql"
     
-    sed -e "s/\${VAR}/${1}/" "$sql_file" > "$fname"
+    sed -e "s/\${DATABASE}/${1}/" \
+        -e "s/\${DDL_PASSWORD}/${2}/" \
+        -e "s/\${DML_PASSWORD}/${3}/" \
+        "$sql_file" > "$fname"
     echo "$fname"
     }
 
 function main(){
     argparse "$@"
-    
-    fname="$(generateSql $2)"
+    getEnv
+    fname="$(generateSql ${2} ${DEFAULT_DDL_PASSWORD} ${DEFAULT_DML_PASSWORD})"
     psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
     }
     
