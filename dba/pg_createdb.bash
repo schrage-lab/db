@@ -53,8 +53,8 @@ function generateSql(){
     sql_file="init_new_db.sql"
     
     sed -e "s/\${DATABASE}/${1}/" \
-        -e "s/\${DEFAULT_DDL_PASSWORD}/${2}/" \
-        -e "s/\${DEFAULT_DML_PASSWORD}/${3}/" \
+        -e "s/\${DEFAULT_RW_PASSWORD}/${2}/" \
+        -e "s/\${DEFAULT_RO_PASSWROD}/${3}/" \
         "$sql_file" > "$fname"
     echo "$fname"
     }
@@ -62,7 +62,7 @@ function generateSql(){
 function main(){
     argparse "$@"
     getEnv
-    fname="$(generateSql ${2} ${DEFAULT_DML_PASSWORD} ${DEFAULT_DDL_PASSWORD})"
+    fname="$(generateSql ${2} ${DEFAULT_RW_PASSWORD} ${DEFAULT_RO_PASSWROD})"
     psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
     }
     
