@@ -38,7 +38,7 @@ function argparse(){
                 shift
         esac
     done
-    }
+}
 
 function generateSql(){
     # $1 = user
