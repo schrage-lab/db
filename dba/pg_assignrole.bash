@@ -63,6 +63,7 @@ function main(){
     
     argparse "$@"
     fname="$(generateSql ${1} ${2} ${ROLE})"
+    psql -d postgres -b -f "$fname" && rm "$fname"
 }
 
 main "$@"
