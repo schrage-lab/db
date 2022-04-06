@@ -43,26 +43,63 @@ function getEnv(){
     export $(grep -v '^#' .env | xargs)
     }
 
-function generateSql(){
+function createDbSql(){
     # $1 = database
-    # $2 = ddl password
-    # $3 = dml password
     
     timestamp="$(date +%Y%m%d_%H%M%S)"
-    fname="/tmp/new_db_tmp_${timestamp}.sql"
-    sql_file="init_new_db.sql"
+    sql_file="createdb.sql"
+    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
+    
+    sed -e "s/\${DATABASE}/${1}/" \
+        "$sql_file" > "$tmp_file"
+    echo "$tmp_file"
+    }
+    
+function createRwSql(){
+    # $1 = database
+    # $2 = rw password
+    
+    timestamp="$(date +%Y%m%d_%H%M%S)"
+    sql_file="create_role_rw.sql"
+    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
     
     sed -e "s/\${DATABASE}/${1}/" \
         -e "s/\${DEFAULT_RW_PASSWORD}/${2}/" \
-        -e "s/\${DEFAULT_RO_PASSWROD}/${3}/" \
-        "$sql_file" > "$fname"
-    echo "$fname"
+        "$sql_file" > "$tmp_file"
+    echo "$tmp_file"
+    }
+    
+function createRoSql(){
+    # $1 = database
+    # $2 = ro password
+    
+    timestamp="$(date +%Y%m%d_%H%M%S)"
+    sql_file="create_role_ro.sql"
+    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
+    
+    sed -e "s/\${DATABASE}/${1}/" \
+        -e "s/\${DEFAULT_RO_PASSWORD}/${2}/" \
+        "$sql_file" > "$tmp_file"
+    echo "$tmp_file"
     }
 
 function main(){
+    # $1 = username
+    # $2 = database
+    
     argparse "$@"
     getEnv
-    fname="$(generateSql ${2} ${DEFAULT_RW_PASSWORD} ${DEFAULT_RO_PASSWROD})"
+    
+    # create database
+    fname="$(generateSql ${2})"
+    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    
+    # create rw role
+    fname="$(generateSql ${2} ${DEFAULT_RW_PASSWORD})"
+    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    
+    # create ro role
+    fname="$(generateSql ${2} ${DEFAULT_RO_PASSWORD})"
     psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
     }
     
