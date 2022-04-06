@@ -1,4 +1,4 @@
 CREATE
-    USER '${USER}'
+    USER "${USER}"
     LOGIN;
     
