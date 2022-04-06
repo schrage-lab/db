@@ -1,3 +1,3 @@
 GRANT
     ${ROLE}
-    TO '${USER}';
+    TO "${USER}";
