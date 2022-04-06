@@ -45,7 +45,7 @@ function generateSql(){
 function main(){
     argparse "$@"
     fname="$(generateSql ${1})"
-    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    psql -d postgres -b -f "$fname" && rm "$fname"
 }
 
 main "$@"
