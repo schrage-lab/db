@@ -1,4 +1,5 @@
 CREATE
     USER "${USER}"
-    LOGIN;
+    LOGIN
+    PASSWORD '${USER}!';
     
