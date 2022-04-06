@@ -90,15 +90,15 @@ function main(){
     getEnv
     
     # create database
-    fname="$(createDbSql ${2})"
+    fname="$(createDbSql ${1})"
     psql -d postgres -b -f "$fname" && rm "$fname"
     
     # create rw role
-    fname="$(createRwSql ${2} ${DEFAULT_RW_PASSWORD})"
+    fname="$(createRwSql ${1} ${DEFAULT_RW_PASSWORD})"
     psql -d postgres -b -f "$fname" && rm "$fname"
     
     # create ro role
-    fname="$(createRoSql ${2} ${DEFAULT_RO_PASSWORD})"
+    fname="$(createRoSql ${1} ${DEFAULT_RO_PASSWORD})"
     psql -d postgres -b -f "$fname" && rm "$fname"
     }
     
