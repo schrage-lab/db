@@ -13,7 +13,6 @@ function usage(){
     "$(basename $0) USERNAME DATABASE [OPTIONS]
     
     Required:
-        USERNAME    Username for postgres database that has CREATEDB permissions.
         DATABASE    Name of new database to create.
     
     Options:
@@ -22,7 +21,7 @@ function usage(){
 }
 
 function argparse(){
-    if [ "$#" -lt 2 ]; then
+    if [ "$#" -lt 1 ]; then
         usage
         exit -1
     fi
@@ -92,15 +91,15 @@ function main(){
     
     # create database
     fname="$(createDbSql ${2})"
-    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    psql -d postgres -b -f "$fname" && rm "$fname"
     
     # create rw role
     fname="$(createRwSql ${2} ${DEFAULT_RW_PASSWORD})"
-    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    psql -d postgres -b -f "$fname" && rm "$fname"
     
     # create ro role
     fname="$(createRoSql ${2} ${DEFAULT_RO_PASSWORD})"
-    psql -U "$1" -d postgres -b -f "$fname" && rm "$fname"
+    psql -d postgres -b -f "$fname" && rm "$fname"
     }
     
 main "$@"
