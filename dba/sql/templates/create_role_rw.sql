@@ -3,18 +3,12 @@
 -- i.e. role that can create objects
 
 CREATE 
-    ROLE ${DATABASE}_rw
+    ROLE IF NOT EXISTS ${DATABASE}_${SCHEMA}_rw
     WITH ENCRYPTED PASSWORD '${DEFAULT_RW_PASSWORD}';
 
 GRANT
-    ALL
+    CONNECT,
+    TEMPORARY
     ON DATABASE ${DATABASE}
-   	TO ${DATABASE}_rw;
-
-GRANT
-    pg_write_all_data 
-    TO ${DATABASE}_rw;
-
-GRANT
-    pg_read_all_data 
-    TO ${DATABASE}_rw;
+   	TO ${DATABASE}_${SCHEMA}_rw;
+    
