@@ -1,16 +1,8 @@
 #!/bin/bash
 
-# assumes init_new_db.sql is in same directory
-# run on database 'postgres'
-# ddl = data definition language
-# 		i.e. role that can create and use objects
-# dml = data modeling language 
-# 		i.e. role that can only perform CRUD operations on objects 
-# CRUD = Create Replace Update Delete
-
 function usage(){
     echo \
-    "$(basename $0) USERNAME DATABASE [OPTIONS]
+    "$(basename $0) DATABASE [OPTIONS]
     
     Required:
         DATABASE    Name of new database to create.
@@ -38,68 +30,56 @@ function argparse(){
     done
     }
 
-function getEnv(){
-    export $(grep -v '^#' .env | xargs)
+function createDb(){
+    # $1 = database
+
+    echo \
+    """
+    CREATE
+        DATABASE \"$1\";
+    """
     }
 
-function createDbSql(){
-    # $1 = database
+function revokePublicFromDb(){
+    # $1
     
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    sql_file="createdb.sql"
-    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
+    echo \
+    """
+    REVOKE 
+        ALL
+        ON DATABASE \"$1\"
+        FROM PUBLIC;
+    """
+}
+
+function revokePublicFromSchema(){
+    # $1
     
-    sed -e "s/\${DATABASE}/${1}/" \
-        "$sql_file" > "$tmp_file"
-    echo "$tmp_file"
-    }
-    
-function createRwSql(){
-    # $1 = database
-    # $2 = rw password
-    
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    sql_file="create_role_rw.sql"
-    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
-    
-    sed -e "s/\${DATABASE}/${1}/" \
-        -e "s/\${DEFAULT_RW_PASSWORD}/${2}/" \
-        "$sql_file" > "$tmp_file"
-    echo "$tmp_file"
-    }
-    
-function createRoSql(){
-    # $1 = database
-    # $2 = ro password
-    
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    sql_file="create_role_ro.sql"
-    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
-    
-    sed -e "s/\${DATABASE}/${1}/" \
-        -e "s/\${DEFAULT_RO_PASSWORD}/${2}/" \
-        "$sql_file" > "$tmp_file"
-    echo "$tmp_file"
-    }
+    echo \
+    """
+    REVOKE
+        ALL
+        ON SCHEMA public
+        FROM PUBLIC;
+    """
+}
 
 function main(){
-    # $1 = username
-    # $2 = database
+    # $1 = database
     
     argparse "$@"
-    getEnv
     
     # create database
-    fname="$(createDbSql ${1})"
-    psql -d postgres -b -f "$fname" && rm "$fname"
+    sql="$(createDb "${1}")"
+    psql -d postgres -c "$sql"
     
-    # create rw role
-    fname="$(createRwSql ${1} ${DEFAULT_RW_PASSWORD})"
-    psql -d postgres -b -f "$fname" && rm "$fname"
+    # revoke public privileges on database
+    sql="$(revokePublicFromDb "${1}")"
+    psql -d postgres -c "$sql"
     
-    # create ro role
-    fname="$(createRoSql ${1} ${DEFAULT_RO_PASSWORD})"
-    psql -d postgres -b -f "$fname" && rm "$fname"
+    # revoke public privileges on public schema
+    sql="$(revokePublicFromSchema "${1}")"
+    psql -d "$1" -c "$sql"
     }
     
 main "$@"
