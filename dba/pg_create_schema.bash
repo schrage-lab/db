@@ -42,7 +42,7 @@ function createSchema(){
     echo \
     """
     CREATE
-        SCHEMA IF NOT EXITS \"$2\";
+        SCHEMA IF NOT EXISTS $1;
     """
 }
 
@@ -53,7 +53,7 @@ function revokeFromPublic(){
     """
     REVOKE
         ALL
-        ON SCHEMA \"$2\"
+        ON SCHEMA $1
         FROM PUBLIC;
     """
 }
@@ -65,11 +65,11 @@ function main(){
     argparse "$@"
     
     # create schema
-    sql="$(createSchema "${2}")"
+    sql="$(createSchema ${2})"
     psql -d "$1" -c "$sql"
     
     # revoke public privileges on schema
-    sql="$(revokeFromPublic "${2}")"
+    sql="$(revokeFromPublic ${2})"
     psql -d "$1" -c "$sql"
 }
 
