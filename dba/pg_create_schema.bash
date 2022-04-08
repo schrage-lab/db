@@ -59,18 +59,29 @@ function revokeFromPublic(){
 }
 
 function main(){
-    # $1 = database
-    # $2 = schema
+    DATABASE="$1"
+    SCHEMA="$2"
     
+    # parse args
     argparse "$@"
     
     # create schema
-    sql="$(createSchema ${2})"
-    psql -d "$1" -c "$sql"
+    sql="$(createSchema ${SCHEMA})"
+    psql -d "$DATABASE" -c "$sql"
     
     # revoke public privileges on schema
-    sql="$(revokeFromPublic ${2})"
-    psql -d "$1" -c "$sql"
+    sql="$(revokeFromPublic ${SCHEMA})"
+    psql -d "$DATABASE" -c "$sql"
+    
+    # create rw role for schema
+    ./pg_create_role_rw.bash "$DATABASE" "$SCHEMA"
+    
+    # create ro role for schema
+    ./pg_create_role_ro.bash "$DATABASE" "$SCHEMA"
+    
+    # rm login attributes from rw and ro roles
+    ./pg_rm_login "${SCHEMA}_rw"
+    ./pg_rm_login "${SCHEMA}_ro"
 }
 
 main "$@"
