@@ -2,12 +2,17 @@
 
 function usage(){
     echo \
-    "$(basename $0) SCHEMA [OPTIONS]
+    "$(basename $0) DATABASE SCHEMA [OPTIONS]
     
-    Wrapper to quickly create a new schema in each ETL database.
+    Wrapper to quickly create new schemas for ETL.
     
     Required:
-        Schema    Name of new schema to create.
+        Schema    Name of new schema to create. Five schemas will be created:
+                    SCHEMA_raw
+                    SCHEMA_stage
+                    SCHEMA_prod
+                    SCHEMA_meta
+                    SCHEMA_lookup
     
     Options:
         -h, --help  Show this help dialogue and exit.
@@ -15,7 +20,7 @@ function usage(){
 }
 
 function argparse(){
-    if [ "$#" -lt 1 ]; then
+    if [ "$#" -lt 2 ]; then
         usage
         exit -1
     fi
@@ -34,11 +39,13 @@ function argparse(){
 
 function main(){
     argparse "$@"
-    SCHEMA="$1"
     
-    DATABASES=("dbraw" "dbstage" "dbprod")
-    for db in "${DATABASES[@]}"; do
-        ./pg_create_schema.bash "$db" "$SCHEMA"
+    DATABASE="$2"
+    SCHEMA="$2"
+    
+    suffixes=("raw" "stage" "prod" "meta" "lookup")
+    for suffix in "${suffixes[@]}"; do
+        ./pg_create_schema.bash "$DATABASE" "${SCHEMA}_${suffix}"
     done
 }
 
