@@ -40,7 +40,7 @@ function argparse(){
 function main(){
     argparse "$@"
     
-    DATABASE="$2"
+    DATABASE="$1"
     SCHEMA="$2"
     
     suffixes=("raw" "stage" "prod" "meta" "lookup")
