@@ -11,8 +11,6 @@ function usage(){
         SCHEMA      Name of schema.
     
     Options:
-        -r, --role  Name of read-write role to grant privileges on schema 
-                    (default = DATABASE_SCHEMA_rw)
         -h, --help  Show this help dialogue and exit.
     "
 }
@@ -25,11 +23,6 @@ function argparse(){
         
     while [ "$#" -gt 0 ]; do
         case "$1" in
-            -r|--role)
-                RW_ROLE="$2"
-                shift
-                shift
-                ;;
             -h|--help)
                 usage
                 exit 0
@@ -45,13 +38,12 @@ function getEnv(){
     }
 
 function createRole(){
-    # $1 = database
-    # $2 = schema
+    # $1 = role
     
     echo \
     """
     CREATE
-        ROLE ${1}_${2}_ro
+        ROLE ${1}
         LOGIN
         PASSWORD '${DEFAULT_RO_PASSWORD}';
     """
@@ -59,7 +51,7 @@ function createRole(){
 
 function grantDbPrivileges(){
     # $1 = database
-    # $2 = schema
+    # $2 = role
     
     echo \
     """
@@ -67,74 +59,75 @@ function grantDbPrivileges(){
         CONNECT,
         TEMPORARY
         ON DATABASE ${1}
-        TO ${1}_${2}_ro;
+        TO ${2};
     """
 }
 
 function grantSchemaPrivileges(){
-    # $1 = database
-    # $2 = schema
+    # $1 = schema
+    # $2 = role
     
     echo \
     """
     GRANT
         USAGE
-        ON SCHEMA ${2}
-        TO ${1}_${2}_ro;
+        ON SCHEMA ${1}
+        TO ${2};
         
     GRANT
         USAGE,
         SELECT
-        ON ALL SEQUENCES ${2}
-        TO ${1}_${2}_ro;
+        ON ALL SEQUENCES 
+        IN SCHEMA ${1}
+        TO ${2};
     """
 }
 
 function alterDefaultPrivileges(){
-    # $1 = database
-    # $2 = schema
+    # $1 = schema
+    # $2 = role
     
     echo \
     """
     ALTER 
         DEFAULT PRIVILEGES 
-        IN SCHEMA ${2}
+        IN SCHEMA ${1}
     GRANT 
         SELECT, 
         INSERT, 
         UPDATE, 
         DELETE 
         ON TABLES 
-        TO ${1}_${2}_ro;
+        TO ${2};
     """
 }
 
 function main(){
     # define globals
-    RW_ROLE="${1}_${2}_rw"
+    DATABASE="$1"
+    SCHEMA="$2"
+    ROLE_NAME="${SCHEMA}_ro"
+    RW_ROLE="${SCHEMA}_rw"
 
+    # parse args & get env variables
     argparse "$@"
     getEnv
     
     # create role
-    sql="$(createRole ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" create_role_ro)"
-    # psql -d postgres -b -f "$sql_file"
+    sql="$(createRole ${ROLE_NAME})"
+    psql -d postgres -c "$sql"
     
     # grant database privileges to role
-    sql="$(grantDbPrivileges ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" grant_db_privileges_ro)"
-    # psql -d postgres -b -f "$sql_file"
+    sql="$(grantDbPrivileges ${DATABASE} ${ROLE_NAME})"
+    psql -d postgres -c "$sql"
     
     # grant schema privileges
-    sql="$(grantSchemaPrivileges ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" grant_schema_privileges_ro)"
-    # psql -d "$1" -b -f "$sql_file"
+    sql="$(grantSchemaPrivileges ${SCHEMA} ${ROLE_NAME})"
+    psql -d "$1" -c "$sql"
     
     # alter default privileges
-    sql="$(alterDefaultPrivileges ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" alter_default_privileges_ro)"
-    # psql -U "$RW_ROLE" -d "$1" -b -f "$sql_file"
+    sql="$(alterDefaultPrivileges ${SCHEMA} ${ROLE_NAME})"
+    PGPASSWORD="$DEFAULT_RW_PASSWORD" psql -U "$RW_ROLE" -d "$1" -c "$sql"
 }
 
 main "$@"
