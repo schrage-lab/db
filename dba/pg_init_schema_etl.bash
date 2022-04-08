@@ -73,12 +73,12 @@ function main(){
     
     # create main rw role for the ETL process
     MAIN_RW_ROLE="${SCHEMA}_main_rw"
-    sql="$(createMainRole ${ROLE})"
+    sql="$(createMainRole ${MAIN_RW_ROLE})"
     psql -d postgres -c "$sql"
     
     # create main ro role for the ETL process
     MAIN_RO_ROLE="${SCHEMA}_main_ro"
-    sql="$(createMainRole ${ROLE})"
+    sql="$(createMainRole ${MAIN_RO_ROLE})"
     psql -d postgres -c "$sql"
     
     # create schemas and associated rw and ro roles for each
