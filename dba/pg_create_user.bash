@@ -30,22 +30,27 @@ function argparse(){
     done
 }
     
-function generateSql(){
+function createUser(){
     # $1 = user
     
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    sql_file="create_user.sql"
-    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
-    
-    sed -e "s/\${USER}/${1}/" \
-        "$sql_file" > "$tmp_file"
-    echo "$tmp_file"
+    echo \
+    """
+    CREATE
+        USER ${1}
+        PASSWORD;
+    """
 }
 
 function main(){
+    # define globals
+    USR="$1"
+    
+    # parse args
     argparse "$@"
-    fname="$(generateSql ${1})"
-    psql -d postgres -b -f "$fname" && rm "$fname"
+    
+    # create user
+    sql="$(createUser ${USR})"
+    psql -d postgres -c "$sql"
 }
 
 main "$@"
