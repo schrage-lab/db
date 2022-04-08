@@ -38,13 +38,12 @@ function getEnv(){
     }
 
 function createRole(){
-    # $1 = database
-    # $2 = schema
+    # $1 = role
     
     echo \
     """
     CREATE
-        ROLE ${1}_${2}_rw
+        ROLE ${1}
         LOGIN
         PASSWORD '${DEFAULT_RW_PASSWORD}';
     """
@@ -52,7 +51,7 @@ function createRole(){
 
 function grantDbPrivileges(){
     # $1 = database
-    # $2 = schema
+    # $2 = role
     
     echo \
     """
@@ -60,47 +59,70 @@ function grantDbPrivileges(){
         CONNECT,
         TEMPORARY
         ON DATABASE ${1}
-        TO ${1}_${2}_rw;
+        TO ${2};
     """
 }
 
 function grantSchemaPrivileges(){
-    # $1 = database
-    # $2 = schema
+    # $1 = schema
+    # $2 = role
     
     echo \
     """
     GRANT
-        USAGE,
-        CREATE
-        ON SCHEMA ${2}
-        TO ${1}_${2}_rw;
+        CREATE,
+        USAGE
+        ON SCHEMA ${1}
+        TO ${2};
         
     GRANT
         ALL
-        ON ALL SEQUENCES ${2}
-        TO ${1}_${2}_rw;
+        ON ALL SEQUENCES 
+        IN SCHEMA ${1}
+        TO ${2};
+        
+    GRANT
+        ALL
+        ON ALL FUNCTIONS
+        IN SCHEMA ${1}
+        TO ${2};
+        
+    GRANT
+        ALL
+        ON ALL PROCEDURES
+        IN SCHEMA ${1}
+        TO ${2};
+        
+    GRANT
+        ALL
+        ON ALL ROUTINES
+        IN SCHEMA ${1}
+        TO ${2};        
     """
 }
 
 function main(){
+    # set globals
+    DATABASE="$1"
+    SCHEMA="$2"
+    ROLE_NAME="${SCHEMA}_rw"
+    
+    # parse args & get env variables
     argparse "$@"
     getEnv
     
     # create role
-    sql="$(createRole ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" create_role_rw)"
-    # psql -d postgres -b -f "$sql_file"
+    sql="$(createRole ${ROLE_NAME})"
+    psql -d postgres -c "$sql"
     
     # grant database privileges to role
-    sql="$(grantDbPrivileges ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" grant_db_privileges_rw)"
-    # psql -d postgres -b -f "$sql_file"
+    sql="$(grantDbPrivileges ${DATABASE} ${ROLE_NAME})"
+    psql -d postgres -c "$sql"
     
     # grant schema privileges
-    sql="$(grantSchemaPrivileges ${1} ${2})"
-    sql_file="$(./generate_sql.bash "${sql}" grant_schema_privileges_rw)"
-    # psql -d "$1" -b -f "$sql_file"
+    # signs into 
+    sql="$(grantSchemaPrivileges ${SCHEMA} ${ROLE_NAME})"
+    psql -U "" -d postgres -c "$sql"
 }
 
 main "$@"
