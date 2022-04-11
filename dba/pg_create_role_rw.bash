@@ -122,7 +122,7 @@ function main(){
     # grant schema privileges
     # signs into 
     sql="$(grantSchemaPrivileges ${SCHEMA} ${ROLE_NAME})"
-    psql -U "" -d postgres -c "$sql"
+    psql -d "$1" -c "$sql"
 }
 
 main "$@"
