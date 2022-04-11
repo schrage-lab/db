@@ -30,22 +30,35 @@ function argparse(){
     done
 }
 
-function generateSql(){
+function dropRole(){
     # $1 = role
     
-    timestamp="$(date +%Y%m%d_%H%M%S)"
-    sql_file="drop_role.sql"
-    tmp_file="/tmp/${sql_file}_tmp_${timestamp}.sql"
-    
-    sed -e "s/\${ROLE}/${1}/" \
-        "$sql_file" > "$tmp_file"
-    echo "$tmp_file"
+    echo \
+    """
+    REASSIGN 
+        OWNED 
+        BY ${1]
+        TO postgres;
+
+    DROP 
+        OWNED 
+        BY ${1};
+        
+    DROP
+        ROLE ${1};
+    """
 }
 
 function main(){
+    # define globals
+    ROLE="$1"
+    
+    # parse args
     argparse "$@"
-    fname="$(generateSql ${1})"
-    psql -d postgres -b -f "$fname" && rm "$fname"
+    
+    sql="$(dropRole ${ROLE})"
+    
+    psql -d postgres -c "$sql"
 }
 
 main "$@"
