@@ -50,7 +50,7 @@ function dropRole(){
 }
 
 function main(){
-    # define globals
+    # define global
     ROLE="$1"
     
     # parse args
