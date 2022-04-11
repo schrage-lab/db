@@ -80,8 +80,8 @@ function main(){
     ./pg_create_role_ro.bash "$DATABASE" "$SCHEMA"
     
     # rm login attributes from rw and ro roles
-    ./pg_rm_login "${SCHEMA}_rw"
-    ./pg_rm_login "${SCHEMA}_ro"
+    ./pg_rm_login.bash "${SCHEMA}_rw"
+    ./pg_rm_login.bash "${SCHEMA}_ro"
 }
 
 main "$@"
