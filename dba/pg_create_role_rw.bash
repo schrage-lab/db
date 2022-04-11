@@ -77,6 +77,12 @@ function grantSchemaPrivileges(){
         
     GRANT
         ALL
+        ON ALL TABLES
+        IN SCHEMA ${1}
+        TO ${2};
+        
+    GRANT
+        ALL
         ON ALL SEQUENCES 
         IN SCHEMA ${1}
         TO ${2};
@@ -120,7 +126,6 @@ function main(){
     psql -d postgres -c "$sql"
     
     # grant schema privileges
-    # signs into 
     sql="$(grantSchemaPrivileges ${SCHEMA} ${ROLE_NAME})"
     psql -d "$1" -c "$sql"
 }
