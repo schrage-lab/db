@@ -50,23 +50,23 @@ pattern: dba.py [create | drop | alter | grant | revoke] [database | schema | ta
     |--NAME
 
 |--GRANT
-|--ROLE
+    |--ROLE
 
 |--REVOKE
-|--ROLE
+    |--ROLE
 
 TODO: 04/14/2022: add 'ALTER' functionality
 """
 
 
 def create_parser():
-    # create parser
+    # main parser
     parser = argparse.ArgumentParser(
         prog="DBA helper",
         description="Helper module for uniform DBA actions.",
     )
 
-    # create action subparser i.e. first command
+    # make action subparser i.e. first command
     action_subparser = parser.add_subparsers(
         title="Main command",
         description="What to do on the database",
@@ -94,7 +94,7 @@ def create_parser():
     )
 
     create_database_parser.add_argument(
-        "--name",
+        "--database",
         type=str,
         required=True,
         help="Name of database"
@@ -154,7 +154,7 @@ def create_parser():
     )
 
     create_role_parser.add_argument(
-        "--name",
+        "--role",
         type=str,
         required=True,
         help="Name of role"
@@ -167,7 +167,7 @@ def create_parser():
     )
 
     create_user_parser.add_argument(
-        "--name",
+        "--user",
         type=str,
         required=True,
         help="Name of user"
@@ -206,27 +206,72 @@ def main(argin: list):
 
     if args.action == "create":
         if args.object == "database":
-            # when a database is created, connection from public is revoked, a function is create in the public
+            # when a database is created, connection from role public is revoked, a function is created in the public
             # schema to create a modified column in a table supplied as a parameter, and an event trigger is created
             # on the database such that new tables will get the modified column via the aforementioned function
             # create database -> revoke defaults -> create fn__update_modified_column -> create
             # fn__add_modified_column -> -> create event trigger
             dba.create_database(
-                database=args.name
+                database=args.database
             )
             dba.revoke_database_defaults(
-                database=args.name
+                database=args.database
             )
-            dba.create_function_update_modified_column()
-            dba.create_event_trigger()
+            dba.create_function_update_modified_column(
+                database=args.database
+            )
+            dba.create_function_add_modified_column(
+                database=args.database
+            )
+            dba.create_event_trigger(
+                database=args.database
+            )
         if args.object == "schema":
-            print("create schema")
+            """
+            when a schema is created, all privileges on the schema are revoked from role public, and three default roles
+            are created:
+                1) admin
+                2) read-write
+                3) read-only
+            """
+            dba.create_schema(
+                database=args.database,
+                schema=args.schema
+            )
+            dba.create_schema_admin_role(
+                database=args.database,
+                schema=args.schema
+            )
+            dba.create_schema_readwrite_role(
+                database=args.database,
+                schema=args.schema
+            )
+            dba.alter_default_privileges_readwrite(
+                database=args.database,
+                schema=args.schema
+            )
+            dba.create_schema_readonly_role(
+                database=args.database,
+                schema=args.schema
+            )
+            dba.alter_default_privileges_readonly(
+                database=args.database,
+                schema=args.schema
+            )
         if args.object == "table":
-            print("create table")
+            dba.create_table(
+                database=args.database,
+                schema=args.schema,
+                table=args.table
+            )
         if args.object == "role":
-            print("create role")
+            dba.create_role(
+                role=args.role
+            )
         if args.object == "user":
-            print("create user")
+            dba.create_user(
+                user=args.user
+            )
     elif args.action == "drop":
         if args.object == "database":
             print("drop database")
