@@ -2,8 +2,18 @@ from psycopg2 import sql
 from executor import SqlExecutor
 
 
-@SqlExecutor()
-def create_database(*, database: str) -> sql.Composed:
+@SqlExecutor
+def create_database(*, database: str, **kwargs) -> sql.Composed:
+    """
+    Create database.
+    Connects to default database as default user as defined in the .env file.
+
+    :param database: Name of new database.
+    :type database: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
     return sql.SQL("""
         CREATE 
             DATABASE {database};
@@ -12,8 +22,18 @@ def create_database(*, database: str) -> sql.Composed:
             )
 
 
-@SqlExecutor
-def revoke_database_defaults(*, database: str) -> sql.Composed:
+@SqlExecutor(default_dbname=False)
+def revoke_database_defaults(*, database: str, **kwargs) -> sql.Composed:
+    """
+    Revoke database defaults. Currently revokes connection from public.
+    Connects to default database as default user as defined in the .env file.
+
+    :param database: Name of database.
+    :type database: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
     return sql.SQL("""
         REVOKE 
             CONNECT 
@@ -24,8 +44,17 @@ def revoke_database_defaults(*, database: str) -> sql.Composed:
             )
 
 
-@SqlExecutor
-def create_function_update_modified_column() -> sql.SQL:
+@SqlExecutor(default_dbname=False)
+def create_function_update_modified_column(**kwargs) -> sql.SQL:
+    """
+    Create a function in the public schema that will update the column 'modified' in a given table with the current
+    timestamp for a row that was inserted or updated.
+
+    :param: None
+    :return: Generated SQL statement.
+    :rtype: sql.SQL object
+    """
+
     return sql.SQL("""
         CREATE 
             FUNCTION public.fn__update_modified_column()
@@ -40,8 +69,17 @@ def create_function_update_modified_column() -> sql.SQL:
         """)
 
 
-@SqlExecutor
-def create_function_add_modified_column() -> sql.SQL:
+@SqlExecutor(default_dbname=False)
+def create_function_add_modified_column(**kwargs) -> sql.SQL:
+    """
+    Create a function in the public schema that will add the column 'modified' in a given table and create a table
+    trigger for updating the timestamp upon inserting or updating a row.
+
+    :param: None
+    :return: Generated SQL statement.
+    :rtype: sql.SQL object
+    """
+
     return sql.SQL("""
         CREATE OR REPLACE 
             FUNCTION public.fn__add_modified_column()
@@ -66,8 +104,17 @@ def create_function_add_modified_column() -> sql.SQL:
         """)
 
 
-@SqlExecutor
-def create_event_trigger() -> sql.SQL:
+@SqlExecutor(default_dbname=False)
+def create_event_trigger(**kwargs) -> sql.SQL:
+    """
+    Create an event trigger on the database that will fire upon new tables being created. Upon creation of a new table
+    in the database, the table will get a new column 'modified' added and an associated trigger created.
+
+    :param: None
+    :return: Generated SQL statement.
+    :rtype: sql.SQL object
+    """
+
     return sql.SQL("""
         CREATE 
             EVENT TRIGGER tr__on_create_table 
@@ -76,8 +123,19 @@ def create_event_trigger() -> sql.SQL:
         """)
 
 
-@SqlExecutor
-def create_schema(*, schema: str) -> sql.Composed:
+@SqlExecutor(default_dbname=False)
+def create_schema(*, database: str, schema: str, **kwargs) -> sql.Composed:
+    """
+    Create a schema in a given database.
+
+    :param database: Database name within which to create the schema.
+    :type database: str
+    :param schema: New schema name.
+    :type schema: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
     return sql.SQL("""
         CREATE 
             SCHEMA IF NOT EXISTS {schema};
@@ -86,8 +144,19 @@ def create_schema(*, schema: str) -> sql.Composed:
             )
 
 
-@SqlExecutor
-def revoke_schema_defaults(*, schema: str) -> sql.Composed:
+@SqlExecutor(default_dbname=False)
+def revoke_schema_defaults(*, database: str, schema: str, **kwargs) -> sql.Composed:
+    """
+    Revoke schema defaults. Currently revokes all privileges from role public.
+
+    :param database: Database name that contains the schema.
+    :type database: str
+    :param schema: Schema name.
+    :type schema: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
     return sql.SQL("""
         REVOKE 
             ALL 
@@ -98,103 +167,180 @@ def revoke_schema_defaults(*, schema: str) -> sql.Composed:
             )
 
 
-@SqlExecutor
-def create_schema_admin_role(*, schema: str) -> sql.Composed:
-    # todo: fix string interpolation
-    admin_role = f"{schema}_admin"
+@SqlExecutor(default_dbname=False)
+def create_schema_admin_role(*, database: str, schema: str, **kwargs) -> sql.Composed:
+    """
+    Create schema admin role. Will have all privileges on schema and all associated objects. Will serve as the creator.
+
+    :param database: Database name that contains the schema.
+    :type database: str
+    :param schema: Schema name.
+    :type schema: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
+    # note to self: string interpolation is ok here as the variable will then be passed into the query via the
+    # sql.Identifier class which does escaping
+    role = f"{schema}_admin"
     return sql.SQL("""
         CREATE 
-            ROLE {admin_role};
-        GRANT 
+            ROLE {role};
+        GRANT
+            CONNECT,
+            TEMPORARY
+            ON DATABASE {database} 
+            TO {role};
+        GRANT
             ALL
             ON SCHEMA {schema}
-            TO {self.Role};
+            TO {role};
         GRANT
             ALL
             ON ALL TABLES
             IN SCHEMA {schema}
-            TO {admin_role};
+            TO {role};
         GRANT
             ALL
             ON ALL SEQUENCES
             IN SCHEMA {schema}
-            TO {admin_role};
+            TO {role};
         GRANT
             ALL
             ON ALL FUNCTIONS
             IN SCHEMA {schema}
-            TO {admin_role};
+            TO {role};
         GRANT
             ALL
             ON ALL PROCEDURES
             IN SCHEMA {schema}
-            TO {admin_role};
+            TO {role};
         GRANT
             ALL
             ON ALL ROUTINES
             IN SCHEMA {schema}
-            TO {admin_role};
+            TO {role};
     """).format(
-        admin_role=sql.Identifier(admin_role),
+        database=sql.Identifier(database),
+        role=sql.Identifier(role),
         schema=sql.Identifier(schema)
     )
 
 
-@SqlExecutor
-def create_schema_readwrite_role(*, schema: str) -> sql.Composed:
-    # todo: fix string interpolation
-    rw_role = f"{schema}_rw"
-    return sql.SQL("""
-        CREATE ROLE {rw_role};
-        GRANT 
-            ALL
-            ON SCHEMA {schema}
-            TO {rw_role};
-        GRANT
-            ALL
-            ON ALL TABLES
-            IN SCHEMA {schema}
-            TO {rw_role};
-        GRANT
-            ALL
-            ON ALL SEQUENCES
-            IN SCHEMA {schema}
-            TO {rw_role};
-        """).format(
-        rw_role=sql.Identifier(rw_role),
-        schema=sql.Identifier(schema)
-    )
+@SqlExecutor(default_dbname=False)
+def create_schema_readwrite_role(*, database: str, schema: str, **kwargs) -> sql.Composed:
+    """
+    Create schema read-write role. Will have temp table privileges, read-write privileges for tables, and read-use
+    privileges for sequences.
 
+    :param database: Database name that contains the schema.
+    :type database: str
+    :param schema: Schema name.
+    :type schema: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
 
-@SqlExecutor
-def create_schema_readonly_role(*, schema: str):
-    # todo: fix string interpolation
-    ro_role = f"{schema}_ro"
+    # note to self: string interpolation is ok here as the variable will then be passed into the query via the
+    # sql.Identifier class which does escaping
+    role = f"{schema}_rw"
     return sql.SQL("""
         CREATE 
-            ROLE {ro_role};
+            ROLE {role};
+        GRANT
+            CONNECT,
+            TEMPORARY
+            ON DATABASE {database} 
+            TO {role};
         GRANT 
             USAGE
             ON SCHEMA {schema}
-            TO {ro_ole};
+            TO {role};
         GRANT
-            SELECT
+            SELECT,
+            INSERT,
+            UPDATE,
+            DELETE
             ON ALL TABLES
             IN SCHEMA {schema}
-            TO {ro_role};
+            TO {role};
         GRANT
-            SELECT
+            SELECT,
+            USAGE
             ON ALL SEQUENCES
             IN SCHEMA {schema}
-            TO {ro_role};
+            TO {role};
         """).format(
-        ro_role=sql.Identifier(ro_role),
+        database=sql.Identifier(database),
+        role=sql.Identifier(role),
         schema=sql.Identifier(schema)
     )
 
 
-@SqlExecutor
-def table(*, schema: str, table: str) -> sql.Composed:
+@SqlExecutor(default_dbname=False)
+def create_schema_readonly_role(*, database: str, schema: str, **kwargs):
+    """
+    Create schema read-only role. Will have temp table privileges, and only USAGE privileges on schema and SELECT for
+    tables and sequences.
+
+    :param database: Database name that contains the schema.
+    :type database: str
+    :param schema: Schema name.
+    :type schema: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
+    # note to self: string interpolation is ok here as the variable will then be passed into the query via the
+    # sql.Identifier class which does escaping
+    role = f"{schema}_ro"
+    return sql.SQL("""
+        CREATE 
+            ROLE {role};
+        GRANT
+            CONNECT,
+            TEMPORARY
+            ON DATABASE {database} 
+            TO {role};
+        GRANT 
+            USAGE
+            ON SCHEMA {schema}
+            TO {role};
+        GRANT
+            SELECT
+            ON ALL TABLES
+            IN SCHEMA {schema}
+            TO {role};
+        GRANT
+            SELECT
+            ON ALL SEQUENCES
+            IN SCHEMA {schema}
+            TO {role};
+        """).format(
+        database=sql.Identifier(database),
+        role=sql.Identifier(role),
+        schema=sql.Identifier(schema)
+    )
+
+
+@SqlExecutor(default_dbname=False)
+def create_table(*, database: str, schema: str, table: str, **kwargs) -> sql.Composed:
+    """
+    Create a table in a given schema. Currently, the table is very rudimentary and will only be initialized with:
+        column | type | constraints
+        ----------------------------
+        id     | serial | not null primary key
+
+    :param database: Database name that contains the schema.
+    :type database: str
+    :param schema: Schema name.
+    :type schema: str
+    :param table: New table name.
+    :type table: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object
+    """
+
     return sql.SQL("""
         CREATE 
             TABLE IF NOT EXISTS {schema}.{table}(
@@ -207,7 +353,16 @@ def table(*, schema: str, table: str) -> sql.Composed:
 
 
 @SqlExecutor
-def role(*, role: str) -> sql.Composed:
+def create_role(*, role: str, **kwargs) -> sql.Composed:
+    """
+    Create a role on the server.
+
+    :param role: New role name.
+    :type role: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object.
+    """
+
     return sql.SQL("""
         CREATE
             ROLE IF NOT EXISTS {role};
@@ -217,7 +372,16 @@ def role(*, role: str) -> sql.Composed:
 
 
 @SqlExecutor
-def user(*, user: str) -> sql.Composed:
+def create_user(*, user: str, **kwargs) -> sql.Composed:
+    """
+    Create a user on the server.
+
+    :param user: New user name.
+    :type user: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object.
+    """
+
     return sql.SQL("""
         CREATE
             USER IF NOT EXISTS {user};
@@ -225,6 +389,125 @@ def user(*, user: str) -> sql.Composed:
         user=sql.Identifier(user)
     )
 
+
+@SqlExecutor(default_dbname=False)
+def alter_default_privileges_readwrite(*, database: str, schema: str, grantor: str = None, grantee: str = None, **kwargs) -> sql.Composed:
+    """
+    Grant read-write privileges on future objects to read-write role.
+
+    :param database: Database name.
+    :type database: str
+    :param schema: Schema to apply this privilege.
+    :type schema: str
+    :param grantor: Role that will own the tables in the schema.
+    :type grantor: str
+    :param grantee: Role that will be given the privilege.
+    :type grantee: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object.
+    """
+
+    # note to self: string interpolation is ok here as the variable will then be passed into the query via the
+    # sql.Identifier class which does escaping
+    if not grantor:
+        grantor = f"{schema}_admin"
+
+    if not grantee:
+        grantee = f"{schema}_rw"
+
+    return sql.SQL("""           
+        ALTER 
+            DEFAULT PRIVILEGES
+            FOR ROLE {grantor}
+            IN SCHEMA {schema}
+        GRANT
+            SELECT,
+            INSERT,
+            UPDATE,
+            DELETE
+            ON TABLES
+            TO {grantee};
+
+        ALTER 
+            DEFAULT PRIVILEGES
+            FOR USER {grantor}
+            IN SCHEMA {schema}
+        GRANT
+            SELECT,
+            USAGE
+            ON SEQUENCES
+            TO {grantee};
+    """).format(
+        schema=sql.Identifier(schema),
+        grantor=sql.Identifier(grantor),
+        grantee=sql.Identifier(grantee)
+    )
+
+
+@SqlExecutor(default_dbname=False)
+def alter_default_privileges_readonly(*, database: str, schema: str, grantor: str = None, grantee: str = None, **kwargs) -> sql.Composed:
+    """
+    Grant read-only privileges on future tables to read-only role.
+
+    :param database: Database name.
+    :type database: str
+    :param schema: Schema to apply this privilege.
+    :type schema: str
+    :param grantor: Role that will own the tables in the schema. If None, then it is assumed that there exists an admin
+                    role for the schema with the name pattern of [schema]_admin. Default = None.
+    :type grantor: str
+    :param grantee: Role that will be given the privilege. If None, then it is assumed that there exists a read-only
+                    role for the schema with the name pattern of [schema]_ro. Default = None.
+    :type grantee: str
+    :return: Generated SQL statement.
+    :rtype: sql.Composed object.
+    """
+
+    # note to self: string interpolation is ok here as the variable will then be passed into the query via the
+    # sql.Identifier class which does escaping
+    if not grantor:
+        grantor = f"{schema}_admin"
+
+    if not grantee:
+        grantee = f"{schema}_ro"
+
+    return sql.SQL("""
+        ALTER 
+            DEFAULT PRIVILEGES
+            FOR USER {grantor}
+            IN SCHEMA {schema}
+        GRANT
+            SELECT
+            ON TABLES
+            TO {grantee};
+            
+        ALTER 
+            DEFAULT PRIVILEGES
+            FOR USER {grantor}
+            IN SCHEMA {schema}
+        GRANT
+            SELECT
+            ON SEQUENCES
+            TO {grantee};
+    """).format(
+        schema=sql.Identifier(schema),
+        grantor=sql.Identifier(grantor),
+        grantee=sql.Identifier(grantee)
+    )
+
+
+def drop_role(*, role: str) -> sql.Composed:
+    """
+
+    :param role:
+    :return:
+    """
+
+    return sql.SQL("""
+        
+    """).format(
+
+    )
 
 if __name__ == '__main__':
     import sys
